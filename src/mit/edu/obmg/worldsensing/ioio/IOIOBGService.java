@@ -45,10 +45,11 @@ public class IOIOBGService extends IOIOService{
 	private Uart mColor_uart = null;
 	private InputStream mColor_in = null;
 	private OutputStream mColor_out= null;
-	byte[] mColor_buffer;
-	int[] rdata;
+	byte[] mColor_buffer = new byte[1];	
+	String rdata;
 	int data[] = new int[24];
 	int data2[] = new int[24];
+	String input;
 
 	Boolean imBusy = false; 
 
@@ -86,48 +87,42 @@ public class IOIOBGService extends IOIOService{
 				logData("write:", data);
 			}*/
 			
-			public  int[] Read(int len) {
-
-				int nTimeCount = 0;
+			public  int Read() throws IOException {
 
 				//wait data available to receive
-				try {
-					while (mColor_in.available() < len) {
-						//Log.i("data available:", Integer.toString(mColor_in.available()));	
-						nTimeCount++;
-						Thread.sleep(160);
-
-						/*if (nTimeCount == 500) {//5 seconds timeout
-							System.out.println("timeout 5 second");
-							return null;
-						}*/
+					//mColor_in.read(mColor_buffer);
+					//input = new String(mColor_buffer);
+				int value = 0;
+					while (value!=13){
+					value = mColor_in.read();
+						if (value == 13) {
+						System.out.println("CR");
+						break;
+						}else if (value == 44) {
+							System.out.println("comma");
+						}else{
+							System.out.println("Color_In: "+value);
+							data[0] = value;	
+						}
 					}
-
-					mColor_buffer = new byte[len];	
 					
-					for(int i=0; i<12; i++){
+					/*for(int i=0; i<data.length; i++){
 						data[i]= (byte) mColor_in.read();
+						System.out.println("data "+i+": "+data[i]);
 						if(data[i] == 13){
-							for(int j=0; j<12; j++){
-								data2[j]= (byte) mColor_in.read();
+							for(int j=0; j<i; j++){
+								data2[j]= data[j];
 								System.out.println("data2: "+data2[j]);
 							}
-							
+							//break;
+						//data = null;
 						}
-
-						//System.out.println("data1: "+data[i]);
-					}
-					mColor_in.read(mColor_buffer);
-					//String input = new String(mColor_buffer);
+					}*/
 
 					//System.out.println("colorBuffer: "+input);
-					//System.out.println("colorIn: "+mColor_in);
-
-				} catch (Exception e) {
-					System.out.println("Error data2: "+data2);
-				}				
-				return data2;	
-			}			
+					//System.out.println("data2: "+data2);
+					return 0;
+			}
 			
 			@Override
 			public void loop() throws ConnectionLostException, InterruptedException {
@@ -135,10 +130,10 @@ public class IOIOBGService extends IOIOService{
 
 				try {
 
-					rdata=Read(24);
-
-					if (rdata == null)
-						throw new Exception("received data null"); 
+					//rdata=Read();
+					Read();
+					/*if (rdata == null)
+						throw new Exception("received data null"); */
 
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -151,8 +146,7 @@ public class IOIOBGService extends IOIOService{
 						UIHandler.post(new Runnable(){
 							public void run(){
 								MainWorldSensing.getSonar(mSonar_Reading);
-								if (rdata != null)
-									MainWorldSensing.getColor(rdata);
+								MainWorldSensing.getColor(data);
 								//Vibrator_Value.setText("Value: "+Vibrator_Pulse);
 							}
 						});
