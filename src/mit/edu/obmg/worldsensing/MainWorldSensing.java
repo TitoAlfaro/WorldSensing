@@ -34,8 +34,9 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 public class MainWorldSensing extends Activity implements 	OnClickListener, 
-OnSeekBarChangeListener{
+															OnSeekBarChangeListener{
 
+	private final static String TAG = "MWorldSensing";
 	private IOIOBGService mIOIOService;
 	private boolean mBounded = false;
 
@@ -154,32 +155,10 @@ OnSeekBarChangeListener{
 	}
 
 	public static void getColor(int[] color){
-		//String input = color;
-		System.out.println("getColor input: "+ color);
-		int[] data = new int[3];
-		int v = 0;
-		/*for(int i=0; i<12;i++){
-			if(color[i] == 13) {
-				data[v] = Integer.parseInt(input);
-				input = "";
-				break;
-			}
-			if(color[i] == 44){
-				data[v] = Integer.parseInt(input);
-				v++;
-				input = "";
-				if(v == 3) break;
-				continue;
-			}*/
-			//input += Character.toString((char)color[i]);
-			//System.out.println("data: "+ data[v]);
-		//}
-		
-		//System.out.println("input: "+ input);
-		//System.out.println("R: "+data[0]+" G: "+data[1]+" B: "+data[2]);
-		//mLEDdebug.setBackgroundColor(Color.rgb(data[0], data[1], data[2]));
 
-		return;
+		Log.i(TAG, "R: "+color[0]+" G: "+color[1]+" B: "+color[2]);
+		mLEDdebug.setBackgroundColor(Color.rgb(color[0], color[1], color[2]));
+
 	}
 
 	@Override

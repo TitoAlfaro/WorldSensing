@@ -21,7 +21,9 @@ import ioio.lib.util.IOIOLooper;
 import ioio.lib.util.android.IOIOService;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
@@ -33,6 +35,7 @@ public class IOIOBGService extends IOIOService{
 	private Handler UIHandler; 
 	private Context context;
 	public MainWorldSensing activity;
+	private final String TAG = "IOIOBG";
 
 	//Sonar
 	private final int mSonar_PIN = 40;
@@ -42,16 +45,21 @@ public class IOIOBGService extends IOIOService{
 	//Color
 	int	rX = 34;
 	int tX = 35;
-	private Uart mColor_uart = null;
-	private InputStream mColor_in = null;
-	private OutputStream mColor_out= null;
+	Uart mColor_uart = null;
+	InputStream mColor_in = null;
+	OutputStream mColor_out= null;
 	byte[] mColor_buffer = new byte[1];	
 	String rdata;
 	int data[] = new int[24];
 	int data2[] = new int[24];
 	String input;
+	int[] rgb;
+	String inputstring = "";	//Data from PC
+	String sensorstring = "";	//Data from sensor
+	boolean input_stringcomplete = false;	//is PC Data done?
+	boolean sensor_stringcomplete = false;	//is sensor Data done?
+	char inchar;
 
-	Boolean imBusy = false; 
 
 	@Override
 	protected IOIOLooper createIOIOLooper() {
@@ -64,76 +72,34 @@ public class IOIOBGService extends IOIOService{
 			protected void setup() throws ConnectionLostException,
 			InterruptedException {
 				mIOIOConnected = true;
-
-				System.out.println(" :|   Open UART");
-
 				mLED = ioio_.openDigitalOutput(0, true);
 				mSonar_Input = ioio_.openAnalogInput(mSonar_PIN);
+
+				Log.i(TAG," :|   Open UART");
 				mColor_uart = ioio_.openUart(tX, rX, 38400, Uart.Parity.NONE, Uart.StopBits.ONE);	
 				mColor_in = mColor_uart.getInputStream();
-				mColor_out = mColor_uart.getOutputStream();		
-
-				System.out.println(" :)   UART OK");
+				mColor_out = mColor_uart.getOutputStream();	
+				Log.d(TAG, "Reading");
+				Log.i(TAG," :)   UART OK");
 			}
-			
-			/*public  void Write(byte[] data){
-				try {
-					out_.write(data);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
 
-				logData("write:", data);
-			}*/
-			
-			public  int Read() throws IOException {
 
-				//wait data available to receive
-					//mColor_in.read(mColor_buffer);
-					//input = new String(mColor_buffer);
-				int value = 0;
-					while (value!=13){
-					value = mColor_in.read();
-						if (value == 13) {
-						System.out.println("CR");
-						break;
-						}else if (value == 44) {
-							System.out.println("comma");
-						}else{
-							System.out.println("Color_In: "+value);
-							data[0] = value;	
-						}
-					}
-					
-					/*for(int i=0; i<data.length; i++){
-						data[i]= (byte) mColor_in.read();
-						System.out.println("data "+i+": "+data[i]);
-						if(data[i] == 13){
-							for(int j=0; j<i; j++){
-								data2[j]= data[j];
-								System.out.println("data2: "+data2[j]);
-							}
-							//break;
-						//data = null;
-						}
-					}*/
-
-					//System.out.println("colorBuffer: "+input);
-					//System.out.println("data2: "+data2);
-					return 0;
-			}
-			
 			@Override
 			public void loop() throws ConnectionLostException, InterruptedException {
 				mSonar_Reading = mSonar_Input.read();
 
 				try {
+					inchar = (char)mColor_in.read();
+					if ((int)inchar == 13) sensor_stringcomplete = true;
+					else sensorstring += inchar;
 
-					//rdata=Read();
-					Read();
-					/*if (rdata == null)
-						throw new Exception("received data null"); */
+					if (sensor_stringcomplete){
+						Log.i(TAG, "full value "+ sensorstring);
+						handleColor(sensorstring);
+						sensorstring = "";
+						sensor_stringcomplete = false;
+					}
+					Thread.sleep(100);
 
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -146,7 +112,7 @@ public class IOIOBGService extends IOIOService{
 						UIHandler.post(new Runnable(){
 							public void run(){
 								MainWorldSensing.getSonar(mSonar_Reading);
-								MainWorldSensing.getColor(data);
+								if (rgb != null) MainWorldSensing.getColor(rgb);
 								//Vibrator_Value.setText("Value: "+Vibrator_Pulse);
 							}
 						});
@@ -195,4 +161,16 @@ public class IOIOBGService extends IOIOService{
 			}
 		}
 	}
+
+	private int[] handleColor(String sensorstring){
+		String[] strArray = sensorstring.split(",");
+		rgb = new int [strArray.length];
+		for(int i=0; i<strArray.length; i++){
+			rgb[i] = Integer.parseInt(strArray[i]);
+			Log.i(TAG, "RGB: " + rgb[i]);
+		} 
+		return rgb;
+	}
+
+
 }
